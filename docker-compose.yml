@@ -1,5 +1,6 @@
 services:
   alien-translator:
+    image: ghcr.io/cdcaskey/hail-mary-calculator:latest
     build: .
     ports:
       - "0:80"
