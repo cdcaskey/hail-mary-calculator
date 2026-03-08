@@ -310,6 +310,36 @@
       text-shadow: 0 0 6px var(--glow-dim);
     }
 
+    /* ── Time row ── */
+    .time-row {
+      display: none;
+      align-items: baseline;
+      gap: 0.7rem;
+      margin-top: 0.55rem;
+    }
+
+    .time-row.active { display: flex; }
+
+    .time-value {
+      font-size: 1.1rem;
+      color: #7ecfff;
+      text-shadow: 0 0 12px rgba(126,207,255,0.35);
+      letter-spacing: 0.05em;
+    }
+
+    .time-value.empty {
+      color: var(--muted);
+      text-shadow: none;
+    }
+
+    /* time mode toggle */
+    .btn.active {
+      color: #7ecfff;
+      border-color: rgba(126,207,255,0.4);
+      background: #0a1a28;
+      box-shadow: 0 0 10px rgba(126,207,255,0.1);
+    }
+
     /* Keyboard hint */
     .keyboard-hint {
       margin-top: 0.9rem;
@@ -337,6 +367,10 @@
         <span class="result-label">Decimal&nbsp;=</span>
         <span class="result-value empty" id="resultDisplay">—</span>
       </div>
+      <div class="time-row" id="timeRow">
+        <span class="result-label">Earth&nbsp;time&nbsp;=</span>
+        <span class="time-value empty" id="timeDisplay">—</span>
+      </div>
     </div>
 
     <div class="key-section-label">Numeral Pad</div>
@@ -345,6 +379,7 @@
     <div class="controls">
       <button class="btn" id="btnBack">← Backspace</button>
       <button class="btn" id="btnClear">Clear</button>
+      <button class="btn" id="btnTime" style="grid-column: span 2;">Time Mode: Off</button>
     </div>
   </div>
 
@@ -362,22 +397,48 @@
       { digit: 5, html: '<span class="vs">V</span>' },
     ];
 
-    let digits = [];
+    // 1 Eridian time unit = 2.366 Earth seconds (Project Hail Mary)
+    const ERIDIAN_UNIT_SECONDS = 2.366;
+
+    let digits   = [];
+    let timeMode = false;
 
     // ── Conversion ──────────────────────────────────────────────────────────
     function toDecimal(digits) {
       return digits.reduce((acc, d) => acc * 6 + d, 0);
     }
 
+    function formatEarthTime(totalSeconds) {
+      if (totalSeconds < 60) {
+        return totalSeconds.toFixed(2) + ' s';
+      }
+      const d  = Math.floor(totalSeconds / 86400);
+      const h  = Math.floor((totalSeconds % 86400) / 3600);
+      const m  = Math.floor((totalSeconds % 3600) / 60);
+      const s  = (totalSeconds % 60).toFixed(1);
+      const parts = [];
+      if (d) parts.push(d + 'd');
+      if (h) parts.push(h + 'h');
+      if (m) parts.push(m + 'm');
+      parts.push(s + 's');
+      return parts.join(' ');
+    }
+
     // ── Render ───────────────────────────────────────────────────────────────
     function render() {
-      const display = document.getElementById('alienDisplay');
-      const result  = document.getElementById('resultDisplay');
+      const display  = document.getElementById('alienDisplay');
+      const result   = document.getElementById('resultDisplay');
+      const timeRow  = document.getElementById('timeRow');
+      const timeDisp = document.getElementById('timeDisplay');
+
+      timeRow.classList.toggle('active', timeMode);
 
       if (digits.length === 0) {
         display.innerHTML = '<span class="cursor"></span>';
         result.textContent = '—';
         result.className = 'result-value empty';
+        timeDisp.textContent = '—';
+        timeDisp.className = 'time-value empty';
       } else {
         display.innerHTML =
           digits.map(d => SYMBOLS[d].html).join('') +
@@ -386,6 +447,10 @@
         const dec = toDecimal(digits);
         result.textContent = dec.toLocaleString('en-GB');
         result.className = 'result-value';
+
+        const earthSec = dec * ERIDIAN_UNIT_SECONDS;
+        timeDisp.textContent = formatEarthTime(earthSec);
+        timeDisp.className = 'time-value';
       }
     }
 
@@ -401,6 +466,14 @@
 
     function clear() {
       digits = [];
+      render();
+    }
+
+    function toggleTime() {
+      timeMode = !timeMode;
+      const btn = document.getElementById('btnTime');
+      btn.textContent = 'Time Mode: ' + (timeMode ? 'On' : 'Off');
+      btn.classList.toggle('active', timeMode);
       render();
     }
 
@@ -430,6 +503,7 @@
     // ── Controls ─────────────────────────────────────────────────────────────
     document.getElementById('btnBack').addEventListener('click', backspace);
     document.getElementById('btnClear').addEventListener('click', clear);
+    document.getElementById('btnTime').addEventListener('click', toggleTime);
 
     // ── Keyboard support ─────────────────────────────────────────────────────
     document.addEventListener('keydown', e => {
